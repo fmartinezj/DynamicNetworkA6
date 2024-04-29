@@ -8,14 +8,17 @@ import scrapy
 from scrapy.crawler import CrawlerProcess
 import json
 
+#constructs a scrapy crawler object to be used for the web scraping process
 class MySpider(scrapy.Spider):
     name = 'my_spider'
 
+    #initializes it
     def __init__(self, domain, start_urls, *args, **kwargs):
         super(MySpider, self).__init__(*args, **kwargs)
         self.allowed_domains = [domain]
         self.start_urls = start_urls
 
+    #defines how it will parse the web pages
     def parse(self, response):
         links = response.css('a::attr(href)').getall()
         for link in links:
@@ -25,6 +28,7 @@ class MySpider(scrapy.Spider):
                     'target': link
                 }
 
+#function for crawling the web pages from the provided input file
 def crawl(input_file, output_file):
     with open(input_file, 'r') as f:
         data = f.readlines()
@@ -39,25 +43,11 @@ def crawl(input_file, output_file):
     process.crawl(MySpider, domain=domain, start_urls=start_urls)
     process.start()
 
-# Example usage:
-# crawl("input.txt", "output.json")
 
-
-# Example usage:
-# crawl("www.example.com", ["https://www.example.com"], "output.json")
-
+#tbd computes the pagerank of the web page nodes
 def compute_pagerank(G):
     return nx.pagerank(G)
-# Example usage:
-# pagerank = compute_pagerank(G)
 
-# def plot_pagerank_graph(G, pagerank, lower_bound, upper_bound):
-#     pr_values = list(pagerank.values())
-#     pr_nodes = [node for node, pr in pagerank.items() if lower_bound <= pr <= upper_bound]
-#     pr_subgraph = G.subgraph(pr_nodes)
-#     pos = nx.spring_layout(pr_subgraph)
-#     nx.draw(pr_subgraph, pos, with_labels=True)
-#     plt.show()
 
 #parses crawled data from the output file to be used in order to generate graph
 def parse_crawled_data(output_file):
@@ -66,29 +56,7 @@ def parse_crawled_data(output_file):
         crawled_data = json.load(file)
     return crawled_data
 
-# def construct_graph(crawled_data, initial_domain):
-#     G = nx.DiGraph()  # Create a directed graph
 
-#     # Add nodes to the graph
-#     for page in crawled_data:
-#         url = page['url']
-#         if initial_domain in url:  # Filter URLs belonging to the initial domain
-#             G.add_node(url)
-
-#     # Add directed edges between URLs based on the links
-#     for page in crawled_data:
-#         source_url = page['url']
-#         if initial_domain in source_url:  # Filter URLs belonging to the initial domain
-#             for link in page['links']:
-#                 target_url = link['url']
-#                 if initial_domain in target_url:  # Filter URLs belonging to the initial domain
-#                     G.add_edge(source_url, target_url)
-
-#     return G
-
-# def save_graph(G, output_graph_file):
-#     # Save the directed graph to a file
-#     nx.write_gpickle(G, output_graph_file)
 
 #reads graph if there is one saved locally
 def read_graph(file_name):
