@@ -384,6 +384,110 @@ def perfect_matching(G):
 # plot_market_clearance_graph(prices, assignments, payoffs)
 
 
+# assignment 6 starts here
+def cascade_effect(G, m, q):
+
+    # here we select m random initiators
+    initiators = np.random.choice(G.nodes(), m, replace=False)
+    influenced = set(initiators)  # to start, only the initiators are influenced
+
+    # this part simulates the actual cascade effect
+    next_influenced = set()
+    while True:
+        for node in influenced:
+            for neighbor in G.neighbors(node):
+                if neighbor not in influenced:
+
+
+                    # here count how many neighbors are affected
+
+                    influenced_neighbors = sum((n in influenced) for n in G.neighbors(neighbor))
+                    # if the number exceeds the threshold --> add to the next round's influenced set
+                    if influenced_neighbors / G.degree(neighbor) > q:
+                        next_influenced.add(neighbor)
+        if not next_influenced:  # no nodes left to be influenced at this point so end it
+            break
+
+        influenced.update(next_influenced)
+        next_influenced.clear()
+
+    # visualizing the actual graph with the cascase effect in place
+    plt.figure(figsize=(12, 8))
+    pos = nx.spring_layout(G)
+
+    nx.draw_networkx_nodes(G, pos, nodelist=list(influenced), node_color='r', label='Influenced')
+    nx.draw_networkx_nodes(G, pos, nodelist=list(set(G.nodes()) - influenced), node_color='g', label='Not Influenced')
+
+
+    nx.draw_networkx_edges(G, pos)
+
+
+    nx.draw_networkx_labels(G, pos)
+
+    plt.legend()
+    plt.show()
+
+
+def simulate_sir(G, p, lifespan, shelter, r):
+    # intialize the suscpetible, infected, and recovered nodes
+    initial_infected = np.random.choice(list(G.nodes()), int(p * G.number_of_nodes()), replace=False)
+    susceptible = set(G.nodes()) - set(initial_infected)
+
+    infected = set(initial_infected)
+
+    recovered = set()
+
+    # here we simulate the SIR model over the user input lifespan
+    for day in range(lifespan):
+        #sets for each type of node here
+        new_infected = set()
+
+        new_recovered = set()
+
+        # infection spread mechanism
+        for node in list(infected):  # here have static list to avoid runtime error during modification
+            for neighbor in G.neighbors(node):
+                if neighbor in susceptible and np.random.random() > shelter:
+                    new_infected.add(neighbor)
+
+        # recovery and vaccination portion
+        for node in list(infected):  # convert to list to avoid modification during iteration
+            if np.random.random() < 0.1:  # recovery rate
+                new_recovered.add(node)
+
+        # vaccination --> here we are iterating over a copy of susceptible node set
+        for node in list(susceptible):
+            if np.random.random() < r:
+                if node in susceptible:  # check in case node state changed during the process
+                    susceptible.remove(node)
+                    recovered.add(node)
+
+        # here we update states
+        infected.update(new_infected)
+
+        infected.difference_update(new_recovered)
+        recovered.update(new_recovered)
+
+        susceptible.difference_update(new_infected)  # Remove newly infected from susceptible
+
+        
+    
+    # final visualization
+    plt.figure(figsize=(12, 8))
+    pos = nx.spring_layout(G)
+    nx.draw_networkx_nodes(G, pos, nodelist=list(susceptible), node_color='g', label='Susceptible')
+
+
+    nx.draw_networkx_nodes(G, pos, nodelist=list(infected), node_color='r', label='Infected')
+    nx.draw_networkx_nodes(G, pos, nodelist=list(recovered), node_color='b', label='Recovered')
+    nx.draw_networkx_edges(G, pos)
+
+    nx.draw_networkx_labels(G, pos)
+    plt.legend()
+    plt.show()
+
+    return G
+
 
 
 #runs the program with a menu and try-catch cases to prevent program stops
@@ -494,7 +598,9 @@ def main():
             print("4) Market Clearance Algorithm")
             print("5) Compute PageRank")
             print("6) Plot PageRank Graph")
-            subchoice = input("Enter Your Choice (1-5): ")
+            print("7) Cascade Effect")
+            print("8) COVID-19")
+            subchoice = input("Enter Your Choice (1-7): ")
             if subchoice == '1':
                 source = input("Enter the source node: ")
                 target = input("Enter the target node: ")
@@ -532,6 +638,24 @@ def main():
                 lower_bound = float(input("Enter the lower bound for PageRank scores: "))
                 upper_bound = float(input("Enter the upper bound for PageRank scores: "))
                 plot_pagerank_graph(G, pagerank, lower_bound, upper_bound)
+            elif subchoice == '7':
+                if G is None:
+                    print("No karate graph in memory. Please create or read a karate graph first.")
+                    continue
+                m = int(input("Enter the number of initiators (int): "))
+                q = float(input("Enter the threshold of the cascade (float): "))
+                cascade_effect(G, m, q)
+                print("PageRank computed successfully.")
+            elif subchoice == '8':
+                if G is None:
+                    print("No graph in memory. Please create or read a graph first.")
+                    continue
+                p = float(input("Enter the fraction of initially infected nodes (float 0.0-1.0): "))
+                lifespan = int(input("Enter the period of days of the simulation (int): "))
+                shelter = float(input("Enter the fraction of the edges that are not considered by the shelter in-place (float 0.0-1.0): "))
+                r = float(input("Enter the vaccination Rate (float 0.0-1.0): "))
+                simulate_sir(G, p, lifespan, shelter, r)
+                print("PageRank computed successfully.")
             else:
                 print("Invalid choice. Please enter number 1-6.")
 
